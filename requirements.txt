@@ -2,3 +2,9 @@ pandas
 sqlalchemy
 psycopg2-binary
 jupyter
+streamlit>=1.28.0
+plotly>=5.17.0
+numpy
+scipy
+matplotlib
+seaborn

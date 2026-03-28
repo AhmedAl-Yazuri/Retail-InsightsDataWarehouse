@@ -13,23 +13,33 @@ This project implements a data warehouse for retail sales data, including custom
 - **Data Modeling**: Star schema design for efficient analytics
 - **Analytics & Reporting**: Statistical analysis and markdown reports generation
 - **Exploratory Analysis**: Jupyter notebook for data exploration
+- **🎯 Interactive Dashboard**: Real-time visualization of all metrics with 6 analytical views
+- **📉 Storytelling Analysis**: Deep-dive investigation into the 2016→2017 sales decline
 
 ## Project Structure
 
 ```
-├── config/                 # Configuration files for API and database
+├── config/                          # Configuration files for API and database
 ├── Data/
-│   ├── raw/               # Original CSV data files
-│   └── processed/         # Cleaned and transformed data
-├── notebooks/             # Jupyter notebooks for exploration
-├── reports/               # Generated reports and visualizations
-├── scripts/               # Python scripts for ETL and analysis
-│   ├── Ingestion.py       # Data ingestion script
-│   ├── transformation.py  # Data cleaning and transformation
-│   ├── Modeling.py        # Data modeling and warehouse loading
-│   └── Stats.py           # Statistical analysis and reporting
-├── sql/                   # SQL schemas and queries
-└── requirements.txt       # Python dependencies
+│   ├── raw/                        # Original CSV data files
+│   └── processed/                  # Cleaned and transformed data
+├── notebooks/                       # Jupyter notebooks for exploration
+│   ├── Exploration.ipynb           # Data exploration
+│   └── SalesDeclineStorytelling.ipynb  # Deep-dive decline analysis [NEW]
+├── reports/                         # Generated reports and visualizations
+├── scripts/                         # Python scripts for ETL and analysis
+│   ├── Ingestion.py                # Data ingestion script
+│   ├── transformation.py           # Data cleaning and transformation
+│   ├── Modeling.py                 # Data modeling and warehouse loading
+│   └── Stats.py                    # Statistical analysis and reporting
+├── sql/                            # SQL schemas and queries
+├── dashboard.py                    # Interactive Streamlit Dashboard [NEW]
+├── launch_dashboard.py             # Dashboard launcher script [NEW]
+├── run.py                          # Main ETL pipeline runner
+├── DASHBOARD_GUIDE.md              # Dashboard documentation [NEW]
+├── SALES_DECLINE_ANALYSIS.md       # Decline analysis summary [NEW]
+├── requirements.txt                # Python dependencies
+└── README.md                       # This file
 ```
 
 ## Setup Instructions
@@ -78,9 +88,50 @@ The project uses sample retail data including:
 
 ## Usage
 
-- **Data Exploration**: Open `notebooks/Exploration.ipynb` in Jupyter
+### Running the ETL Pipeline
+```bash
+python run.py
+```
+
+### 📊 Interactive Dashboard (NEW)
+Launch a powerful interactive dashboard with 6 analytical views:
+```bash
+python launch_dashboard.py
+# OR
+streamlit run dashboard.py
+```
+
+Access at: `http://localhost:8501`
+
+**Dashboard Features:**
+- 📊 Overview with KPI cards
+- 💰 Sales trends and patterns
+- 🏆 Top products and customers
+- 📍 Regional performance
+- 👥 Customer analytics
+- ⚠️ Sales decline analysis (2016 vs 2017)
+
+### 📉 Storytelling Analysis (NEW)
+Deep-dive investigation into why sales declined from 2016 to 2017:
+```bash
+jupyter notebook notebooks/SalesDeclineStorytelling.ipynb
+```
+
+**Includes:**
+- Root cause analysis with multiple sections
+- Product, regional, and customer insights
+- 5+ professional visualizations
+- Actionable recommendations
+
+### Data Exploration
+- **Interactive**: Open `notebooks/Exploration.ipynb` in Jupyter
+- **Dashboard**: Use the interactive dashboard for real-time exploration
 - **Reports**: Check `reports/stats_report.md` for generated analytics
-- **Custom Queries**: Use `sql/queries.sql` as reference for additional analysis
+
+### Custom Analysis
+- Use `sql/queries.sql` as reference for additional analysis
+- Check `DASHBOARD_GUIDE.md` for detailed documentation
+- See `SALES_DECLINE_ANALYSIS.md` for decline insights
 
 ## Contributing
 
