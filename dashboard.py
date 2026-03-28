@@ -147,40 +147,40 @@ def get_overview_metrics(start_date, end_date):
     queries = {
         'total_sales': f"""
             SELECT SUM(totalsales)::NUMERIC AS total_sales 
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
         """,
         'unique_customers': f"""
             SELECT COUNT(DISTINCT fs.customerid)::INT AS unique_customers 
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
         """,
         'total_orders': f"""
             SELECT COUNT(*)::INT AS total_orders 
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
         """,
         'avg_order_value': f"""
             SELECT AVG(totalsales)::NUMERIC AS avg_order_value 
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
         """,
         'sales_by_year': f"""
             SELECT dc.year, SUM(fs.totalsales)::NUMERIC AS total_sales
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
             GROUP BY dc.year
             ORDER BY dc.year
         """,
         'sales_by_month': f"""
             SELECT dc.year, dc.month, SUM(fs.totalsales)::NUMERIC AS total_sales
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
             GROUP BY dc.year, dc.month
             ORDER BY dc.year, dc.month
@@ -310,8 +310,8 @@ elif page == "💰 Sales Analysis":
                 SELECT 
                     dc.Weekday as weekday, 
                     SUM(fs.totalsales)::NUMERIC AS total_sales
-                FROM dw.fact_sales fs
-                JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+                FROM public.fact_sales fs
+                JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
                 WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
                 GROUP BY dc.Weekday
             )
@@ -347,8 +347,8 @@ elif page == "💰 Sales Analysis":
                 SELECT 
                     dc.Month as month, 
                     SUM(fs.totalsales)::NUMERIC AS total_sales
-                FROM dw.fact_sales fs
-                JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+                FROM public.fact_sales fs
+                JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
                 WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
                 GROUP BY dc.Month
             )
@@ -385,9 +385,9 @@ elif page == "🏆 Top Performers":
                     dp.ProductName as productname, 
                     COUNT(fs.salesid)::INT AS sales_count, 
                     SUM(fs.totalsales)::NUMERIC AS total_revenue
-                FROM dw.fact_sales fs
-                JOIN dw.dim_products dp ON fs.productid = dp.productid
-                JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+                FROM public.fact_sales fs
+                JOIN public.dim_products dp ON fs.productid = dp.productid
+                JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
                 WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
                 GROUP BY dp.ProductName
             )
@@ -427,9 +427,9 @@ elif page == "📍 Regional Insights":
                     dt.TerritoryName as territoryname, 
                     SUM(fs.totalsales)::NUMERIC AS total_revenue, 
                     COUNT(fs.salesid)::INT AS order_count
-                FROM dw.fact_sales fs
-                JOIN dw.dim_territories dt ON fs.territoryid = dt.territoryid
-                JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+                FROM public.fact_sales fs
+                JOIN public.dim_territories dt ON fs.territoryid = dt.territoryid
+                JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
                 WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
                 GROUP BY dt.TerritoryName
             )
@@ -467,8 +467,8 @@ elif page == "👥 Customer Analytics":
                 dc.CustomerName,
                 SUM(fs.totalsales)::NUMERIC AS lifetime_value,
                 COUNT(fs.salesid)::INT AS purchase_count
-            FROM dw.fact_sales fs
-            JOIN dw.dim_customers dc ON fs.customerid = dc.customerid
+            FROM public.fact_sales fs
+            JOIN public.dim_customers dc ON fs.customerid = dc.customerid
             GROUP BY dc.customerid, dc.CustomerName
         """
         customer_ltv = load_data(query)
@@ -507,8 +507,8 @@ elif page == "⚠️ Decline Analysis":
         st.subheader("📉 Yearly Comparison")
         query = f"""
             SELECT dc.year, SUM(fs.totalsales)::NUMERIC AS total_sales, COUNT(fs.salesid)::INT AS order_count
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
             GROUP BY dc.year
             ORDER BY dc.year
@@ -535,9 +535,9 @@ elif page == "⚠️ Decline Analysis":
                 SUM(CASE WHEN dc.year = 2017 THEN fs.totalsales ELSE 0 END)::NUMERIC AS sales_2017,
                 COUNT(CASE WHEN dc.year = 2016 THEN fs.salesid END)::INT AS orders_2016,
                 COUNT(CASE WHEN dc.year = 2017 THEN fs.salesid END)::INT AS orders_2017
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
-            JOIN dw.dim_products dp ON fs.productid = dp.productid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
+            JOIN public.dim_products dp ON fs.productid = dp.productid
             WHERE dc.year IN (2016, 2017) AND CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
             GROUP BY dp.ProductName
         )
@@ -572,9 +572,9 @@ elif page == "⚠️ Decline Analysis":
                 dt.TerritoryName as territoryname,
                 SUM(CASE WHEN dc.year = 2016 THEN fs.totalsales ELSE 0 END)::NUMERIC AS sales_2016,
                 SUM(CASE WHEN dc.year = 2017 THEN fs.totalsales ELSE 0 END)::NUMERIC AS sales_2017
-            FROM dw.fact_sales fs
-            JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
-            JOIN dw.dim_territories dt ON fs.territoryid = dt.territoryid
+            FROM public.fact_sales fs
+            JOIN public.dim_calendar dc ON fs.dateid = dc.dateid
+            JOIN public.dim_territories dt ON fs.territoryid = dt.territoryid
             WHERE dc.year IN (2016, 2017) AND CAST(CONCAT(dc.year, '-', LPAD(dc.month::TEXT, 2, '0'), '-', LPAD(dc.day::TEXT, 2, '0')) AS DATE) BETWEEN '{start_date}' AND '{end_date}'
             GROUP BY dt.TerritoryName
         )
