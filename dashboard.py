@@ -39,10 +39,36 @@ st.markdown("""
 # Database Connection
 @st.cache_resource
 def get_db_connection():
-    with open('config/db_config.json') as config_file:
-        config = json.load(config_file)
-    DB_URI = f"postgresql+psycopg2://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['dbname']}?options=-csearch_path=dw"
-    return create_engine(DB_URI)
+    # Try to load from Streamlit Secrets (for Streamlit Cloud)
+    try:
+        db_config = st.secrets.get("database", {})
+        
+        # If URL is provided directly, use it
+        if isinstance(db_config, dict) and 'url' in db_config:
+            DB_URI = db_config['url'].replace('postgresql://', 'postgresql+psycopg2://')
+        elif isinstance(db_config, dict):
+            # Fallback to building URL from components
+            host = db_config.get('host', 'localhost')
+            user = db_config.get('user', 'postgres')
+            password = db_config.get('password', '')
+            port = db_config.get('port', 5432)
+            dbname = db_config.get('database', 'dw')
+            DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?options=-csearch_path=dw"
+        else:
+            # Fallback to local config file
+            with open('config/db_config.json') as config_file:
+                config = json.load(config_file)
+            host = config.get('host', 'localhost')
+            user = config.get('user', 'postgres')
+            password = config.get('password', '')
+            port = config.get('port', 5432)
+            dbname = config.get('database', 'dw')
+            DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?options=-csearch_path=dw"
+        
+        return create_engine(DB_URI)
+    except (FileNotFoundError, KeyError) as e:
+        st.error("❌ Database configuration not found. Please configure database secrets in Streamlit Cloud.")
+        st.stop()
 
 @st.cache_data
 def load_data(query):
