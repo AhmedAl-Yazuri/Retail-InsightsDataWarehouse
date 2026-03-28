@@ -39,23 +39,37 @@ st.markdown("""
 # Database Connection
 @st.cache_resource
 def get_db_connection():
-    # Try to load from Streamlit Secrets (for Streamlit Cloud)
+    import os
+    
+    # 1. Try to load from Streamlit Secrets (for Streamlit Cloud) FIRST
     try:
-        db_config = st.secrets.get("database", {})
-        
-        # If URL is provided directly, use it
-        if isinstance(db_config, dict) and 'url' in db_config:
-            DB_URI = db_config['url'].replace('postgresql://', 'postgresql+psycopg2://')
-        elif isinstance(db_config, dict):
-            # Fallback to building URL from components
-            host = db_config.get('host', 'localhost')
-            user = db_config.get('user', 'postgres')
-            password = db_config.get('password', '')
-            port = db_config.get('port', 5432)
-            dbname = db_config.get('database', 'dw')
-            DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?options=-csearch_path=dw"
-        else:
-            # Fallback to local config file
+        if hasattr(st, 'secrets') and 'database' in st.secrets:
+            db_config = st.secrets['database']
+            
+            # If URL is provided directly, use it
+            if isinstance(db_config, dict) and 'url' in db_config:
+                DB_URI = db_config['url']
+                if not DB_URI.startswith('postgresql+psycopg2://'):
+                    DB_URI = DB_URI.replace('postgresql://', 'postgresql+psycopg2://')
+                return create_engine(DB_URI)
+            
+            # Otherwise, build URL from components
+            if isinstance(db_config, dict):
+                host = db_config.get('host')
+                user = db_config.get('user')
+                password = db_config.get('password')
+                port = db_config.get('port', 5432)
+                dbname = db_config.get('database', 'dw')
+                
+                if host and user and password:
+                    DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?options=-csearch_path=dw"
+                    return create_engine(DB_URI)
+    except Exception as e:
+        st.write(f"Debug - Secrets error: {str(e)}")
+    
+    # 2. Fallback to local config file (for local development only)
+    if os.path.exists('config/db_config.json'):
+        try:
             with open('config/db_config.json') as config_file:
                 config = json.load(config_file)
             host = config.get('host', 'localhost')
@@ -64,11 +78,24 @@ def get_db_connection():
             port = config.get('port', 5432)
             dbname = config.get('database', 'dw')
             DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?options=-csearch_path=dw"
-        
-        return create_engine(DB_URI)
-    except (FileNotFoundError, KeyError) as e:
-        st.error("❌ Database configuration not found. Please configure database secrets in Streamlit Cloud.")
-        st.stop()
+            return create_engine(DB_URI)
+        except Exception as e:
+            pass
+    
+    # 3. If nothing works, show error
+    st.error("""
+    ❌ **Database configuration not found!**
+    
+    Please add your Railway PostgreSQL connection to Streamlit Cloud Secrets:
+    
+    1. Go to your app settings → Secrets
+    2. Add this:
+    ```toml
+    [database]
+    url = "postgresql://postgres:PASSWORD@HOST:PORT/railway"
+    ```
+    """)
+    st.stop()
 
 @st.cache_data
 def load_data(query):
