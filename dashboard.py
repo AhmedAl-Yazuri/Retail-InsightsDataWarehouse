@@ -90,9 +90,14 @@ def get_db_connection():
         st.stop()
 
 @st.cache_data
-def load_data(query):
+def load_data(query, query_name="query"):
     engine = get_db_connection()
-    return pd.read_sql_query(query, engine)
+    try:
+        return pd.read_sql_query(query, engine)
+    except Exception as e:
+        st.error(f"Database query failed for '{query_name}': {e}")
+        st.code(query.strip(), language="sql")
+        st.stop()
 
 # Page Title
 st.title("📊 Retail Insights Dashboard")
@@ -128,27 +133,27 @@ def get_overview_metrics(start_date, end_date):
 
     queries = {
         'total_sales': f"""
-            SELECT SUM(totalsales)::NUMERIC AS total_sales 
+            SELECT COALESCE(SUM(totalsales), 0) AS total_sales 
             FROM dw.fact_sales fs
             WHERE {date_filter}
         """,
         'unique_customers': f"""
-            SELECT COUNT(DISTINCT fs.customerid)::INT AS unique_customers 
+            SELECT COUNT(DISTINCT fs.customerid) AS unique_customers 
             FROM dw.fact_sales fs
             WHERE {date_filter}
         """,
         'total_orders': f"""
-            SELECT COUNT(*)::INT AS total_orders 
+            SELECT COUNT(fs.salesid) AS total_orders 
             FROM dw.fact_sales fs
             WHERE {date_filter}
         """,
         'avg_order_value': f"""
-            SELECT AVG(totalsales)::NUMERIC AS avg_order_value 
+            SELECT COALESCE(AVG(totalsales), 0) AS avg_order_value 
             FROM dw.fact_sales fs
             WHERE {date_filter}
         """,
         'sales_by_year': f"""
-            SELECT dc.year, SUM(fs.totalsales)::NUMERIC AS total_sales
+            SELECT dc.year, COALESCE(SUM(fs.totalsales), 0) AS total_sales
             FROM dw.fact_sales fs
             JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE {date_filter}
@@ -156,7 +161,7 @@ def get_overview_metrics(start_date, end_date):
             ORDER BY dc.year
         """,
         'sales_by_month': f"""
-            SELECT dc.year, dc.month, SUM(fs.totalsales)::NUMERIC AS total_sales
+            SELECT dc.year, dc.month, COALESCE(SUM(fs.totalsales), 0) AS total_sales
             FROM dw.fact_sales fs
             JOIN dw.dim_calendar dc ON fs.dateid = dc.dateid
             WHERE {date_filter}
@@ -173,10 +178,10 @@ if page == "📊 Overview":
     queries = get_overview_metrics(start_date, end_date)
     
     # Load metrics
-    total_sales_data = load_data(queries['total_sales'])
-    unique_customers_data = load_data(queries['unique_customers'])
-    total_orders_data = load_data(queries['total_orders'])
-    avg_order_value_data = load_data(queries['avg_order_value'])
+    total_sales_data = load_data(queries['total_sales'], 'overview.total_sales')
+    unique_customers_data = load_data(queries['unique_customers'], 'overview.unique_customers')
+    total_orders_data = load_data(queries['total_orders'], 'overview.total_orders')
+    avg_order_value_data = load_data(queries['avg_order_value'], 'overview.avg_order_value')
     
     total_sales = total_sales_data.iloc[0, 0]
     unique_customers = unique_customers_data.iloc[0, 0]
@@ -218,7 +223,7 @@ if page == "📊 Overview":
     
     # Sales Trend
     st.subheader("📈 Sales Trend (2015-2017)")
-    sales_by_month = load_data(queries['sales_by_month'])
+    sales_by_month = load_data(queries['sales_by_month'], 'overview.sales_by_month')
     sales_by_month['date'] = pd.to_datetime(sales_by_month[['year', 'month']].assign(day=1))
     
     fig = px.line(
@@ -241,7 +246,7 @@ if page == "📊 Overview":
     col1, col2 = st.columns(2)
     
     with col1:
-        sales_by_year = load_data(queries['sales_by_year'])
+        sales_by_year = load_data(queries['sales_by_year'], 'overview.sales_by_year')
         
         fig = px.bar(
             sales_by_year,
@@ -305,7 +310,7 @@ elif page == "💰 Sales Analysis":
                     WHEN 'Saturday' THEN 7
                 END
         """
-        weekday_sales = load_data(query)
+        weekday_sales = load_data(query, 'sales_analysis.weekday_sales')
         
         fig = px.bar(
             weekday_sales,
@@ -333,7 +338,7 @@ elif page == "💰 Sales Analysis":
             SELECT * FROM monthly_sales_cte
             ORDER BY month
         """
-        monthly_sales = load_data(query)
+        monthly_sales = load_data(query, 'sales_analysis.monthly_sales')
         
         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         monthly_sales['month_name'] = monthly_sales['month'].apply(lambda x: month_names[int(x)-1])
@@ -373,7 +378,7 @@ elif page == "🏆 Top Performers":
             ORDER BY total_revenue DESC
             LIMIT 10
         """
-        top_products = load_data(query)
+        top_products = load_data(query, 'top_performers.top_products')
         
         fig = px.bar(
             top_products,
@@ -414,7 +419,7 @@ elif page == "📍 Regional Insights":
             SELECT * FROM territory_revenue
             ORDER BY total_revenue DESC
         """
-        region_sales = load_data(query)
+        region_sales = load_data(query, 'regional_insights.territory_revenue')
         
         fig = px.treemap(
             region_sales,
@@ -449,7 +454,7 @@ elif page == "👥 Customer Analytics":
             JOIN dw.dim_customers dc ON fs.customerid = dc.customerid
             GROUP BY dc.customerid, dc.customername
         """
-        customer_ltv = load_data(query)
+        customer_ltv = load_data(query, 'customer_analytics.customer_ltv')
         
         fig = px.histogram(
             customer_ltv,
@@ -491,7 +496,7 @@ elif page == "⚠️ Decline Analysis":
             GROUP BY dc.year
             ORDER BY dc.year
         """
-        yearly = load_data(query)
+        yearly = load_data(query, 'decline_analysis.yearly')
         st.dataframe(yearly, use_container_width=True)
     
     with col2:
@@ -523,7 +528,7 @@ elif page == "⚠️ Decline Analysis":
         ORDER BY (sales_2017 - sales_2016) DESC
         LIMIT 10
     """
-    product_decline = load_data(query)
+    product_decline = load_data(query, 'decline_analysis.product_comparison')
     product_decline['change'] = np.where(
         product_decline['sales_2016'] == 0,
         np.nan,
@@ -563,7 +568,7 @@ elif page == "⚠️ Decline Analysis":
         SELECT * FROM region_comparison
         ORDER BY sales_2016 DESC
     """
-    region_decline = load_data(query)
+    region_decline = load_data(query, 'decline_analysis.region_comparison')
     region_decline['change'] = ((region_decline['sales_2017'] - region_decline['sales_2016']) / region_decline['sales_2016'] * 100).round(2)
     
     fig = px.bar(
