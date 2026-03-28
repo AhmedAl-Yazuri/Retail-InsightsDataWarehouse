@@ -94,7 +94,19 @@ def get_db_connection():
     [database]
     url = "postgresql://postgres:PASSWORD@HOST:PORT/railway"
     ```
+    
+    3. Click "Save"
+    4. Wait 1 minute for changes to take effect
+    5. Click "Reboot app"
     """)
+    
+    # Debug info
+    st.write("---")
+    st.write("**Debug Info:**")
+    st.write(f"Has secrets: {hasattr(st, 'secrets')}")
+    if hasattr(st, 'secrets'):
+        st.write(f"Secrets keys: {list(st.secrets.keys())}")
+    
     st.stop()
 
 @st.cache_data
