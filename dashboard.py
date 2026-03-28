@@ -41,73 +41,53 @@ st.markdown("""
 def get_db_connection():
     import os
     
-    # 1. Try to load from Streamlit Secrets (for Streamlit Cloud) FIRST
     try:
-        if hasattr(st, 'secrets') and 'database' in st.secrets:
-            db_config = st.secrets['database']
-            
-            # If URL is provided directly, use it
-            if isinstance(db_config, dict) and 'url' in db_config:
-                DB_URI = db_config['url']
-                if not DB_URI.startswith('postgresql+psycopg2://'):
-                    DB_URI = DB_URI.replace('postgresql://', 'postgresql+psycopg2://')
-                return create_engine(DB_URI)
-            
-            # Otherwise, build URL from components
-            if isinstance(db_config, dict):
-                host = db_config.get('host')
-                user = db_config.get('user')
-                password = db_config.get('password')
-                port = db_config.get('port', 5432)
-                dbname = db_config.get('database', 'dw')
-                
-                if host and user and password:
-                    DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?options=-csearch_path=dw"
-                    return create_engine(DB_URI)
-    except Exception as e:
-        st.write(f"Debug - Secrets error: {str(e)}")
-    
-    # 2. Fallback to local config file (for local development only)
-    if os.path.exists('config/db_config.json'):
-        try:
-            with open('config/db_config.json') as config_file:
-                config = json.load(config_file)
+        # Try Streamlit Secrets first
+        if hasattr(st, 'secrets') and st.secrets:
+            try:
+                db_url = st.secrets['database']['url']
+                if db_url:
+                    # Convert to psycopg2 driver if needed
+                    if db_url.startswith('postgresql://'):
+                        db_url = db_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+                    return create_engine(db_url)
+            except (KeyError, TypeError):
+                pass
+        
+        # Try local config file
+        config_path = 'config/db_config.json'
+        if os.path.exists(config_path):
+            with open(config_path) as f:
+                config = json.load(f)
             host = config.get('host', 'localhost')
             user = config.get('user', 'postgres')
             password = config.get('password', '')
             port = config.get('port', 5432)
-            dbname = config.get('database', 'dw')
-            DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?options=-csearch_path=dw"
+            dbname = config.get('dbname', 'DATAW')
+            DB_URI = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
             return create_engine(DB_URI)
-        except Exception as e:
-            pass
-    
-    # 3. If nothing works, show error
-    st.error("""
-    ❌ **Database configuration not found!**
-    
-    Please add your Railway PostgreSQL connection to Streamlit Cloud Secrets:
-    
-    1. Go to your app settings → Secrets
-    2. Add this:
-    ```toml
-    [database]
-    url = "postgresql://postgres:PASSWORD@HOST:PORT/railway"
-    ```
-    
-    3. Click "Save"
-    4. Wait 1 minute for changes to take effect
-    5. Click "Reboot app"
-    """)
-    
-    # Debug info
-    st.write("---")
-    st.write("**Debug Info:**")
-    st.write(f"Has secrets: {hasattr(st, 'secrets')}")
-    if hasattr(st, 'secrets'):
-        st.write(f"Secrets keys: {list(st.secrets.keys())}")
-    
-    st.stop()
+        
+        # If nothing works
+        st.error("""
+        ❌ **لم نعثر على بيانات الاتصال بقاعدة البيانات!**
+        
+        يرجى إضافة بيانات اتصال Railway PostgreSQL إلى Streamlit Cloud Secrets:
+        
+        1. اذهب إلى إعدادات التطبيق → Secrets
+        2. أضف هذا:
+        ```toml
+        [database]
+        url = "postgresql://postgres:IVYVDQWEMLzodIFDFxwsuFErkQrvdkcU@switchback.proxy.rlwy.net:10827/railway"
+        ```
+        3. اضغط Save
+        4. انتظر 1 دقيقة
+        5. اضغط Reboot app
+        """)
+        st.stop()
+        
+    except Exception as e:
+        st.error(f"❌ خطأ في الاتصال: {str(e)}")
+        st.stop()
 
 @st.cache_data
 def load_data(query):
